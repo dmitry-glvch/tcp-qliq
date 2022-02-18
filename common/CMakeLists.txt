@@ -1,0 +1,1 @@
+add_library(easy_shutdown STATIC easy_shutdown.cpp)
