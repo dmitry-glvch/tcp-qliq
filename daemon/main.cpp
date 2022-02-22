@@ -8,7 +8,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "deamonize.hpp"
-#include "clem/clem.hpp"
+#include "net.hpp"
 
 
 std::string get_current_timestamp ();
@@ -21,12 +21,6 @@ int main (int argc, char* argv[]) {
 
   try {
 
-    deamonize();
-    umask(0);
-
-    std::signal(SIGHUP, shutdown_worker);
-    std::signal(SIGTERM, shutdown_worker);
-
     if (argc != 3) {
       std::cerr << "Wrong usage.\nUsage: daemon <ip> <port>" << std::endl;
       return -1;
@@ -35,19 +29,23 @@ int main (int argc, char* argv[]) {
     namespace ip  = boost::asio::ip;
     using     tcp = boost::asio::ip::tcp;
 
-    const char* listen_address { argv[1] };
-    const auto  listen_port    { boost::lexical_cast<ip::port_type>(argv[2]) };
+    const auto listen_address { ip::make_address(argv[1]) };
+    const auto listen_port    { boost::lexical_cast<ip::port_type>(argv[2]) };
+
+
+    imaqliq::test::daemon::deamonize();
+    umask(0);
+
+    std::signal(SIGHUP, shutdown_worker);
+    std::signal(SIGTERM, shutdown_worker);
 
     boost::asio::io_context io_context;
     tcp::acceptor acceptor {
       io_context,
-      tcp::endpoint {
-        ip::make_address(listen_address),
-        listen_port
-      }
+      tcp::endpoint { listen_address, listen_port }
     };
-    
-    for (unsigned short accepted { 0 }; accepted < 1; ++accepted) {
+
+    for (unsigned short accepted { 0 }; accepted < 3; ++accepted) {
       tcp::socket socket { io_context };
       acceptor.accept(socket);
       service_routine(socket);
@@ -60,17 +58,17 @@ int main (int argc, char* argv[]) {
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
     return -1;
-  } 
+  }
 
 }
 
 void service_routine (boost::asio::ip::tcp::socket& socket) noexcept {
   try {
 
-    const std::string file_name { clem::receive_string(socket) };
+    const std::string file_name { imaqliq::test::net::receive_string(socket) };
       
     std::ofstream os { get_current_timestamp() + '_' + file_name };
-    os << clem::receive_string(socket);
+    os << imaqliq::test::net::receive_string(socket);
     os.close();
 
   } catch (...) {
@@ -87,5 +85,5 @@ std::string get_current_timestamp () {
 
 void shutdown_worker (int signal) {
   std::cout << "Received signal " << signal << ".\n"
-            << "Gracefully shutting down." << std::endl; 
+               "Gracefully shutting down." << std::endl;
 }

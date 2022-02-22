@@ -1,9 +1,9 @@
-#include "clem/clem.hpp"
+#include "net.hpp"
 
 #include <span>
 
 
-namespace clem {
+namespace imaqliq::test::net {
 
 void receive_bytes_to (
     boost::asio::ip::tcp::socket& from,
@@ -13,8 +13,10 @@ void receive_bytes_to (
   auto buffer { boost::asio::buffer(to) };
   std::size_t bytes_received { 0 };
 
-  while (bytes_received < byte_count)
+  while (bytes_received < byte_count) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     bytes_received += from.receive(buffer);
+  }
 }
 
 void send_bytes_from (

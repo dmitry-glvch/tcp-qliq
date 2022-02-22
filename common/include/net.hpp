@@ -3,7 +3,7 @@
 #include <boost/asio.hpp>
 
 
-namespace clem {
+namespace imaqliq::test::net {
 
 using string_length_type = uint64_t;
 
