@@ -24,7 +24,7 @@ int main (int argc, char* argv[]) {
     const auto listen_port    { boost::lexical_cast<ip::port_type>(argv[2]) };
 
 
-    // daemon::deamonize();
+    daemon::deamonize();
 
     boost::asio::io_context io_context { 1 };
 

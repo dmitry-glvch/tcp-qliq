@@ -1,10 +1,8 @@
 #include "routines.hpp"
 
-#include <span>
-#include <string>
-#include <iostream>
 #include <chrono>
 #include <fstream>
+#include <filesystem>
 
 #include "net_routines.hpp"
 
@@ -53,23 +51,44 @@ listen (const ip::address& listen_address, ip::port_type listen_port) {
 
 awaitable<void> service (tcp::socket&& s) {
 
+  namespace fs = std::filesystem;
+
   tcp::socket socket { std::forward<tcp::socket>(s) };
   co_await net_routines::send_int<uint8_t>(socket, true);
 
   const uint64_t file_size
       { co_await net_routines::receive_int<uint64_t>(socket) };
+
+  fs::path current_path { fs::current_path() };
+  auto space_available { fs::space(current_path).available };
+
+  if (space_available < file_size) {
+    co_await net_routines::send_int<uint8_t>(socket, false);
+    co_return;
+  }
+
+  std::string timestamp { get_current_timestamp() };
+  fs::path temp_path { current_path / (timestamp + ".tmp") };
+  {
+    std::ofstream os { temp_path };
+    fs::resize_file(temp_path, file_size);
+    os.close();
+  }
+  
   co_await net_routines::send_int<uint8_t>(socket, true);
   
   const std::string file_name { co_await net_routines::receive_string(socket) };
-  std::cout << file_name << std::endl;
   co_await net_routines::send_int<uint8_t>(socket, true);
 
-  const std::string file_contents { co_await net_routines::receive_string(socket) };
-  std::ofstream os { get_current_timestamp() + '_' + file_name };
+  const auto file_contents { co_await net_routines::receive_string(socket) };
+  
+  std::ofstream os { temp_path };
   os << file_contents;
   os.close();
+
+  fs::rename(temp_path, current_path / (timestamp + "_" + file_name));
+  co_await net_routines::send_int<uint8_t>(socket, true);
   
 }
-
 
 }

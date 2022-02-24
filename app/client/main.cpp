@@ -74,30 +74,24 @@ client_routine (
   try {
 
     tcp::socket socket { std::forward<tcp::socket>(s) };
-    if (!(co_await routines::receive_int<uint8_t>(socket)))
-      throw std::runtime_error("Server denial");
+    co_await routines::get_ack_or_throw(socket);
 
     const auto file_size { std::filesystem::file_size(file_path) };
     co_await routines::send_int<uint64_t>(socket, file_size);
 
-    if (!(co_await routines::receive_int<uint8_t>(socket)))
-      throw std::runtime_error("Server denial");
+    co_await routines::get_ack_or_throw(socket);
 
     const std::string file_name { file_path.filename ().string () };
     co_await routines::send_string(socket, file_name);
 
-    if (!(co_await routines::receive_int<uint8_t>(socket)))
-      throw std::runtime_error("Server denial");
+    co_await routines::get_ack_or_throw(socket);
 
     std::ifstream is { file_path, std::ios::in | std::ios::binary };
     const std::string file_contents { std::istreambuf_iterator { is }, { } };
     is.close ();
 
-    std::cout << "Got file contents" << std::endl;
-
     co_await routines::send_string(socket, file_contents);
-
-    std::cout << "Sent file contents" << std::endl;
+    co_await routines::get_ack_or_throw(socket);
     
   } catch (const boost::system::system_error& e) {
     const boost::system::error_code& code = e.code();
@@ -106,5 +100,4 @@ client_routine (
     std::cerr << e.what() << std::endl;
   }
 
-  
 }

@@ -29,11 +29,15 @@ awaitable<void> send_string (tcp::socket& socket, std::string_view string) {
     throw std::invalid_argument("String is too long to be sent.");
 
   co_await send_int<uint64_t>(socket, string.length());
-
-  if (uint8_t go_on { co_await receive_int<uint8_t>(socket) }; !go_on)
-    throw std::runtime_error("Server denial");
-
+  co_await get_ack_or_throw(socket);
   co_await send_bytes(socket, string, length);
+
+}
+
+awaitable<void> get_ack_or_throw (tcp::socket& socket) {
+
+  if (uint8_t ack { co_await receive_int<uint8_t>(socket) }; !ack)
+    throw std::runtime_error("Server denial");
 
 }
 
