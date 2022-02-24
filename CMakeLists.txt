@@ -22,8 +22,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
   -Wmissing-declarations \
   -Wmissing-include-dirs \
   -Wswitch-enum \
-  -Wswitch-default \
-  -Wzero-as-null-pointer-constant \
   -Wfatal-errors \
   -Wconversion \
   -Wcast-qual \

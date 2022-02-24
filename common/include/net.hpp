@@ -19,6 +19,8 @@ void send_string (
     boost::asio::ip::tcp::socket& socket,
     const std::string_view& string);
 
+uint8_t receive_go_on (boost::asio::ip::tcp::socket& socket);
+
 
 template <typename T>
 concept bufferable = requires (T obj) { boost::asio::buffer(obj, std::declval<uint64_t>()); };

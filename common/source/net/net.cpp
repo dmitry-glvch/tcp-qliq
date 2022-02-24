@@ -35,6 +35,30 @@ void send_length (
   std::cout << "[_] send_length" << std::endl;
 }
 
+uint8_t receive_go_on (boost::asio::ip::tcp::socket& socket) {
+  
+  std::cout << "[+] receive_go_on" << std::endl;
+
+  unsigned result;
+  std::size_t received_bytes { 0 };
+  auto buffer { boost::asio::buffer(std::addressof(result), sizeof(unsigned)) };
+
+  while (received_bytes < sizeof(unsigned)) {
+    try {
+      received_bytes += socket.receive(buffer);
+    } catch (const boost::system::system_error& e) {
+      std::cout << "Receive problem" << std::endl;
+      const boost::system::error_code& code = e.code();
+      std::cerr << code.value() << ": " << code.message() << std::endl;
+      throw;
+    }
+  }
+
+  std::cout << "[_] receive_go_on" << std::endl;
+  return result;
+
+}
+
 
 void send_string (
     boost::asio::ip::tcp::socket& socket,
@@ -47,6 +71,9 @@ void send_string (
     throw std::invalid_argument { "String is too long to be sent." };
 
   send_length(socket, length);
+  // std::this_thread::sleep_for(std::chrono::seconds(2));
+  if (const uint8_t go_on { receive_go_on(socket) }; !go_on)
+    throw std::runtime_error("Server denial.");
   send_bytes_from(socket, string, length);
 
   std::cout << "[_] send_string" << std::endl;
