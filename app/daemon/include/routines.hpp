@@ -34,4 +34,11 @@ receive_bytes (
     bufferable auto& to,
     std::size_t byte_count);
 
+boost::asio::awaitable<void>
+send_bytes (
+    boost::asio::ip::tcp::socket& to,
+    bufferable auto& from,
+    std::size_t byte_count);
+
 }
+

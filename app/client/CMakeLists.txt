@@ -5,5 +5,5 @@ find_package(Threads REQUIRED)
 
 target_include_directories(client PRIVATE ${Boost_INCLUDE_DIRS} )
 
-target_link_libraries(client PUBLIC net)
+target_link_libraries(client PRIVATE net_routines)
 target_link_libraries(client PRIVATE Threads::Threads)

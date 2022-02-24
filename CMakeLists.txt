@@ -32,6 +32,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
   -Wnull-dereference \
 ")
 
-add_subdirectory(client)
-add_subdirectory(daemon)
-add_subdirectory(common)
+add_subdirectory(lib)
+add_subdirectory(app/client)
+add_subdirectory(app/daemon)
