@@ -90,7 +90,7 @@ client_routine (
     const std::string file_contents { std::istreambuf_iterator { is }, { } };
     is.close ();
 
-    co_await routines::send_string(socket, file_contents);
+    co_await routines::send_bytes(socket, file_contents, file_size);
     co_await routines::get_ack_or_throw(socket);
     
   } catch (const boost::system::system_error& e) {

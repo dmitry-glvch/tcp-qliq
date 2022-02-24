@@ -80,7 +80,8 @@ awaitable<void> service (tcp::socket&& s) {
   const std::string file_name { co_await net_routines::receive_string(socket) };
   co_await net_routines::send_int<uint8_t>(socket, true);
 
-  const auto file_contents { co_await net_routines::receive_string(socket) };
+  std::string file_contents (file_size, '\0');
+  co_await net_routines::receive_bytes(socket, file_contents, file_size);
   
   std::ofstream os { temp_path };
   os << file_contents;

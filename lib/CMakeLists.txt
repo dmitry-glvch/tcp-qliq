@@ -1,4 +1,4 @@
-find_package(Boost 1.47.0 REQUIRED)
+find_package(Boost 1.78.0 REQUIRED)
 find_package(Threads REQUIRED)
 
 
