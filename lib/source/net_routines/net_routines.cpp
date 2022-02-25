@@ -39,7 +39,4 @@ awaitable<void> get_ack_or_throw (tcp::socket& socket) {
 
 }
 
-
-
-
 }

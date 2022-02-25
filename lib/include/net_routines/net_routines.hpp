@@ -68,7 +68,7 @@ imaqliq::test::net_routines::receive_int (boost::asio::ip::tcp::socket& socket) 
   constexpr auto int_size { sizeof(integral) };
 
   integral result;
-  auto buffer { boost::asio::buffer(std::addressof(result), int_size) };
+  auto buffer = boost::asio::buffer(std::addressof(result), int_size);
   co_await receive_bytes(socket, buffer, int_size);
 
   co_return result;
@@ -82,7 +82,7 @@ imaqliq::test::net_routines::send_int (
     integral value) {
 
   constexpr auto int_size { sizeof(integral) };
-  auto buffer { boost::asio::buffer(std::addressof(value), int_size) };
+  auto buffer = boost::asio::buffer(std::addressof(value), int_size);
 
   co_await send_bytes(socket, buffer, int_size);
 
@@ -95,7 +95,7 @@ imaqliq::test::net_routines::receive_bytes (
     std::size_t byte_count) {
 
   std::size_t bytes_received { 0 };
-  auto buffer { boost::asio::buffer(to, byte_count) };
+  auto buffer = boost::asio::buffer(to, byte_count);
 
   while (bytes_received < byte_count)
     bytes_received += co_await from.async_receive(buffer, boost::asio::use_awaitable);
@@ -108,7 +108,7 @@ imaqliq::test::net_routines::send_bytes (
     imaqliq::test::net_routines::bufferable auto& from,
     std::size_t byte_count) {
 
-  auto buffer { boost::asio::buffer(from, byte_count) };
+  auto buffer = boost::asio::buffer(from, byte_count);
   std::size_t bytes_received { 0 };
 
   while (bytes_received < byte_count)

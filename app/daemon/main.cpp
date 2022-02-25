@@ -28,8 +28,8 @@ int main (int argc, char* argv[]) {
 
     boost::asio::io_context io_context { 1 };
 
-    boost::asio::signal_set signals { io_context, SIGHUP, SIGTERM };
-    signals.async_wait (
+    boost::asio::signal_set stop_signals { io_context, SIGHUP, SIGTERM };
+    stop_signals.async_wait (
       [&io_context]
       (const boost::system::error_code&, int signal) {
         std::cout << "Received signal " << signal << ".\n"
