@@ -1,22 +1,22 @@
+#include <filesystem>
 #include <string_view>
 #include <concepts>
-#include <iostream>
 
 #include <boost/asio.hpp>
 
 namespace imaqliq::test::net_routines {
 
 boost::asio::awaitable<void>
-receive_file (
+receive_file_contents (
     boost::asio::ip::tcp::socket& socket,
-    uint64_t length,
-    std::ostream& os);
+    uint64_t file_size,
+    const std::filesystem::path& save_path);
 
 boost::asio::awaitable<void>
-send_file (
+send_file_contents (
     boost::asio::ip::tcp::socket& socket,
-    uint64_t length,
-    std::istream& is);
+    uint64_t file_size,
+    const std::filesystem::path& file_path);
 
 
 boost::asio::awaitable<std::string>

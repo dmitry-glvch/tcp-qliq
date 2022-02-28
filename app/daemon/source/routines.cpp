@@ -78,15 +78,8 @@ awaitable<void> service (tcp::socket&& s) {
   co_await net_routines::send_int<uint8_t>(socket, true);
   
   const std::string file_name { co_await net_routines::receive_string(socket) };
-  co_await net_routines::send_int<uint8_t>(socket, true);
 
-  std::string file_contents (file_size, '\0');
-  co_await net_routines::receive_bytes(socket, file_contents, file_size);
-  
-  std::ofstream os { temp_path };
-  os << file_contents;
-  os.close();
-
+  co_await net_routines::receive_file_contents(socket, file_size, temp_path);
   fs::rename(temp_path, current_path / (timestamp + "_" + file_name));
   co_await net_routines::send_int<uint8_t>(socket, true);
   

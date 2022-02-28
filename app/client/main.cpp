@@ -28,7 +28,7 @@ int main (int argc, char* argv[]) {
     const char* port   { argv[2] };
 
     namespace fs = std::filesystem;
-    const fs::path    file_path { fs::path (argv[3]) };
+    const fs::path file_path { fs::path (argv[3]) };
 
 
     using tcp = boost::asio::ip::tcp;
@@ -78,19 +78,12 @@ client_routine (
 
     const auto file_size { std::filesystem::file_size(file_path) };
     co_await routines::send_int<uint64_t>(socket, file_size);
-
     co_await routines::get_ack_or_throw(socket);
 
     const std::string file_name { file_path.filename ().string () };
     co_await routines::send_string(socket, file_name);
 
-    co_await routines::get_ack_or_throw(socket);
-
-    std::ifstream is { file_path, std::ios::in | std::ios::binary };
-    const std::string file_contents { std::istreambuf_iterator { is }, { } };
-    is.close ();
-
-    co_await routines::send_bytes(socket, file_contents, file_size);
+    co_await routines::send_file_contents(socket, file_size, file_path);
     co_await routines::get_ack_or_throw(socket);
     
   } catch (const boost::system::system_error& e) {
