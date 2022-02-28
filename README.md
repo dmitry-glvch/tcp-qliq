@@ -57,3 +57,27 @@ client <server-ip-address> <port> <path-to-file>
 ```shell
 ./client 192.168.0.3 1337 ~/image.jpg
 ```
+
+
+### Пример работы
+```shell
+~/imaqliq
+$ mkdir build && cd build && cmake .. && cmake --build . && cd ..
+-- The CXX compiler identification is GNU 11.2.0
+...
+[100%] Built target daemon
+
+~/imaqliq
+$ ./build/app/daemon/daemon 192.168.0.3 1337
+
+~/imaqliq
+$ ./build/app/client/client 192.168.0.3 1337 ~/image.jpg
+
+~/imaqliq
+$ sha256sum ../image.jpg ./1646042245973139905_image.jpg
+d1dc26c58b670d2c63f860c1840c911dc3d7e6499fd43f59e2efe7a4abf7dccf  ../image.jpg
+d1dc26c58b670d2c63f860c1840c911dc3d7e6499fd43f59e2efe7a4abf7dccf  ./1646042245973139905_image.jpg
+
+~/imaqliq
+$
+```
