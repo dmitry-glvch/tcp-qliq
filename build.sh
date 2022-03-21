@@ -1,11 +1,14 @@
 # !/bin/sh
 
-rm -r build
+rm -r build conan
+
+mkdir conan
+cd conan
+conan install .. --build missing
+cd ..
 
 mkdir build
 cd build
-cmake -D CMAKE_CXX_COMPILER=g++ ..
+cmake ..
 cmake --build .
 cd ..
-
-g++ -v

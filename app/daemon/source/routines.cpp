@@ -52,18 +52,19 @@ listen (const ip::address& listen_address, ip::port_type listen_port) {
 awaitable<void> service (tcp::socket&& s) {
 
   namespace fs = std::filesystem;
+  using continuation = net_routines::continuation;
 
   tcp::socket socket { std::forward<tcp::socket>(s) };
-  co_await net_routines::send_int<uint8_t>(socket, true);
+  co_await net_routines::send_continuation(socket);
 
-  const uint64_t file_size
-      { co_await net_routines::receive_int<uint64_t>(socket) };
+  const net_routines::length_t file_size
+      { co_await net_routines::receive_int<net_routines::length_t>(socket) };
 
   fs::path current_path { fs::current_path() };
   auto space_available { fs::space(current_path).available };
 
   if (space_available < file_size) {
-    co_await net_routines::send_int<uint8_t>(socket, false);
+    co_await net_routines::send_continuation(socket, continuation::DENIAL);
     co_return;
   }
 
@@ -75,13 +76,13 @@ awaitable<void> service (tcp::socket&& s) {
     os.close();
   }
   
-  co_await net_routines::send_int<uint8_t>(socket, true);
+  co_await net_routines::send_continuation(socket);
   
   const std::string file_name { co_await net_routines::receive_string(socket) };
 
   co_await net_routines::receive_file_contents(socket, file_size, temp_path);
   fs::rename(temp_path, current_path / (timestamp + "_" + file_name));
-  co_await net_routines::send_int<uint8_t>(socket, true);
+  co_await net_routines::send_continuation(socket);
   
 }
 
