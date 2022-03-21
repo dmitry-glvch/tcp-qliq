@@ -1,4 +1,4 @@
-#include "deamonize.hpp"
+#include "daemonize.hpp"
 
 #include <iostream>
 
@@ -13,14 +13,15 @@ void fork_or_exit () {
   if (const pid_t fork_status{ fork() }; fork_status < 0) {
     std::perror("Failed to fork");
     exit(errno);
-  } else if (fork_status > 0)
+  } else if (fork_status > 0) {
     exit(EXIT_SUCCESS);
+  }
 }
 
 }
 
 
-void imaqliq::test::daemon::deamonize () {
+void imaqliq::test::daemon::daemonize () {
 
   fork_or_exit();
 

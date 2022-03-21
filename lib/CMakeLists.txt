@@ -1,7 +1,6 @@
 find_package(Boost 1.78.0 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(range-v3 REQUIRED)
 
 
 add_library(net_routines source/net_routines/net_routines.cpp)

@@ -1,118 +1,113 @@
+#pragma once
+
 #include <filesystem>
 #include <string_view>
 #include <concepts>
+#include <span>
 
 #include <boost/asio.hpp>
 
+
 namespace imaqliq::test::net_routines {
 
-template <typename T>
-using awaitable_t = boost::asio::awaitable<T>;
-using length_t    = uint64_t;
-using socket_t    = boost::asio::ip::tcp::socket;
+using boost::asio::awaitable;
+using socket_t = boost::asio::ip::tcp::socket;
 
-enum class continuation : uint8_t { OK, REPREAT, DENIAL };
+using length_t = std::uint64_t;
+constexpr length_t max_string_length { 200 };
+
+enum class continuation : std::uint_fast8_t { OK, REPEAT, DENIAL };
 
 
-awaitable_t<void>
+awaitable<void>
 receive_file_contents (
-    socket_t & socket,
+    socket_t& socket,
     length_t file_size,
     const std::filesystem::path& save_path);
 
-awaitable_t<void>
+awaitable<void>
 send_file_contents (
-    socket_t & socket,
+    socket_t& socket,
     length_t file_size,
     const std::filesystem::path& file_path);
 
 
-awaitable_t<std::string> receive_string (socket_t& socket);
-awaitable_t<void> send_string (socket_t& socket, std::string_view string);
+awaitable<std::string> receive_string (socket_t& socket);
+awaitable<void> send_string (socket_t& socket, std::string_view string);
 
 
-awaitable_t<void> get_ack_or_throw (
-    socket_t& socket,
-    continuation expected_value = continuation::OK);
+awaitable<continuation> receive_continuation (socket_t& socket);
 
-awaitable_t<continuation> receive_continuation (socket_t& socket);
-  
-awaitable_t<void> send_continuation (
+awaitable<void> send_continuation (
     socket_t& socket,
     continuation value = continuation::OK);
 
 
-template<std::integral integral>
-awaitable_t<integral> receive_int (socket_t& socket);
+template <std::integral integral_t>
+awaitable<integral_t> receive_int (socket_t& socket);
 
-template<std::integral integral>
-awaitable_t<void> send_int (socket_t& socket, integral value);
+template <std::integral integral_t>
+awaitable<void> send_int (socket_t& socket, integral_t value);
 
 
-template <typename T>
-concept bufferable = requires (T obj, std::size_t s) {
-  boost::asio::buffer(obj, s);
-};
+template <typename T, std::size_t extent>
+awaitable<void> receive_bytes (socket_t& socket, std::span<T, extent> bytes);
 
-awaitable_t<void> receive_bytes (
-    socket_t& from,
-    bufferable auto& to,
-    std::size_t byte_count);
-
-awaitable_t<void> send_bytes (
-    socket_t
-    & to,
-    bufferable auto& from,
-    std::size_t byte_count);
-    
+template <typename T, std::size_t extent>
+awaitable<void> send_bytes (socket_t& socket, std::span<T, extent> bytes);
+ 
 }
 
 
-template<std::integral integral>
-boost::asio::awaitable<integral>
+template <std::integral integral_t>
+boost::asio::awaitable<integral_t>
 imaqliq::test::net_routines::receive_int (
-    boost::asio::ip::tcp::socket& socket) {
+    imaqliq::test::net_routines::socket_t& socket) {
 
-  integral result;
-
-  integral* buffer_ptr = std::addressof(result);
-  co_await receive_bytes(socket, buffer_ptr, sizeof(integral));
-
+  integral_t result;
+  co_await receive_bytes(
+    socket,
+    std::span<integral_t, 1> { std::addressof(result), 1 });
   co_return result;
 }
 
-template<std::integral integral>
+template <std::integral integral_t>
 boost::asio::awaitable<void>
 imaqliq::test::net_routines::send_int (
-    boost::asio::ip::tcp::socket& socket,
-    integral value) {
+    imaqliq::test::net_routines::socket_t& socket,
+    integral_t value) {
 
-  const integral* buffer_ptr = std::addressof(value);
-  co_await send_bytes(socket, buffer_ptr, sizeof(integral));
+  co_await send_bytes (
+      socket,
+      std::span<integral_t, 1> { std::addressof(value), 1 });
 }
 
+template <typename T, std::size_t extent>
 boost::asio::awaitable<void>
 imaqliq::test::net_routines::receive_bytes (
-    boost::asio::ip::tcp::socket& from,
-    imaqliq::test::net_routines::bufferable auto& to,
-    std::size_t byte_count) {
+    boost::asio::ip::tcp::socket& socket,
+    std::span<T, extent> bytes) {
+
+  const std::size_t byte_count { bytes.size_bytes() };
+  boost::asio::mutable_buffer buffer { bytes.data(), byte_count };
 
   std::size_t received { 0 };
-  auto buffer = boost::asio::buffer(to, byte_count);
-
   while (received < byte_count)
-    received += co_await from.async_receive(buffer, boost::asio::use_awaitable);
+    received += co_await socket.async_receive(
+        buffer,
+        boost::asio::use_awaitable);
 }
 
+template <typename T, std::size_t extent>
 boost::asio::awaitable<void>
 imaqliq::test::net_routines::send_bytes (
-    boost::asio::ip::tcp::socket& to,
-    imaqliq::test::net_routines::bufferable auto& from,
-    std::size_t byte_count) {
+    boost::asio::ip::tcp::socket& socket,
+    std::span<T, extent> bytes) {
 
-  auto buffer = boost::asio::buffer(from, byte_count);
+  const std::size_t byte_count { bytes.size_bytes() };
+  boost::asio::const_buffer buffer { bytes.data(), byte_count };
+
   std::size_t sent { 0 };
-
   while (sent < byte_count)
-    sent += co_await to.async_send(buffer, boost::asio::use_awaitable);
+    sent += co_await socket.async_send(buffer, boost::asio::use_awaitable);
 }

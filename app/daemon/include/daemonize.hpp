@@ -3,6 +3,6 @@
 
 namespace imaqliq::test::daemon {
 
-void deamonize();
+void daemonize ();
 
 }

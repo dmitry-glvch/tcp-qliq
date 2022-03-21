@@ -8,12 +8,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fcoroutines")
 
+
 set (CONAN_DIR "${CMAKE_SOURCE_DIR}/conan/")
 list(APPEND CMAKE_MODULE_PATH ${CONAN_DIR})
 
-message(CLEM)
-message (${CMAKE_MODULE_PATH})
-message(CLEM)
 
 add_subdirectory(lib)
 add_subdirectory(app/client)

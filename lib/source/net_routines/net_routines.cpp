@@ -8,62 +8,52 @@
 
 namespace {
 
-  namespace r = std::ranges;
-  namespace v = std::ranges::views;
+  namespace r  = std::ranges;
+  namespace v  = std::ranges::views;
+  namespace fs = std::filesystem;
+  using std::span;
+  using std::byte;
+  using std::array;
 
-  using boost::asio::awaitable;
   using boost::asio::use_awaitable;
-
-  using boost::asio::ip::tcp;
-  namespace ip = boost::asio::ip;
-
   using namespace imaqliq::test::net_routines;
-  using continuation = imaqliq::test::net_routines::continuation;
   using continuation_ut = std::underlying_type_t<continuation>;
 
-  // template <typename range_t>
-  // concept buffer_range =
-  //     r::sized_range<range_t> &&
-  //     r::common_range<range_t> &&
-  //     r::forward_range<range_t>;
 
-  // template <typename range_t>
-  // concept output_buffer_range =
-  //     buffer_range<range_t> &&
-  //     r::output_range<range_t, r::iterator_t<range_t>>;
-
-
-  using chunk_size_t = uint16_t;
+  using chunk_size_t = std::uint_fast16_t;
 
   constexpr chunk_size_t max_chunk_size { 64 * 1024 - 1 - 60 };
   constexpr chunk_size_t chunk_size { max_chunk_size};
   static_assert (chunk_size <= max_chunk_size, "Incorrent chunk size");
 
-  using chunk = std::array<std::byte, chunk_size>;
+  using chunk_t = array<byte, chunk_size>;
 
-  constexpr uint8_t checksum_length { 16u };
-  using chunk_checksum = std::array<std::byte, checksum_length>;
+  constexpr std::size_t checksum_length { 16 };
+  using chunk_checksum = array<byte, checksum_length>;
 
 
-  chunk_checksum calc_chunk_checksum (const chunk& c) {
-    const auto data = reinterpret_cast<const unsigned char*>( c.data () );
+  chunk_checksum calc_chunk_checksum (const chunk_t& chunk) {
+    const auto data = reinterpret_cast<const unsigned char*>( chunk.data () );
     chunk_checksum result;
     MD5 (data, chunk_size, reinterpret_cast<unsigned char*>( result.data () ));
     return result;
   }
 
   awaitable<void> receive_chunk (
-      tcp::socket& socket,
-      chunk& buffer,
+      socket_t& socket,
+      chunk_t& buffer,
       chunk_size_t size,
       std::ostream& os) {
 
     while (true) {
 
       chunk_checksum received_checksum;
-      co_await receive_bytes(socket, received_checksum, checksum_length);
+      co_await receive_bytes(
+          socket,
+          span { received_checksum }.first(checksum_length));
       
-      co_await receive_bytes(socket, buffer, size);
+      co_await receive_bytes(socket, span { buffer }.first(size));
+
       chunk_checksum calced_checksum { calc_chunk_checksum(buffer) };
 
       const bool checksum_match
@@ -75,18 +65,16 @@ namespace {
       if (checksum_match)
         break;
 
-      co_await send_continuation(socket, continuation::REPREAT);
-
+      co_await send_continuation(socket, continuation::REPEAT);
     }
 
     os.write(reinterpret_cast<const char*>(buffer.data()), size);
     co_await send_continuation(socket);
-
   }
 
   awaitable<void> send_chunk (
-      tcp::socket& socket,
-      chunk& buffer,
+      socket_t& socket,
+      chunk_t& buffer,
       chunk_size_t size,
       std::istream& is) {
 
@@ -95,15 +83,13 @@ namespace {
       is.read(reinterpret_cast<char*>(buffer.data()), size);
 
       chunk_checksum checksum { calc_chunk_checksum(buffer) };
-      const std::byte* checkum_ptr { checksum.data() };
-      co_await send_bytes(socket, checkum_ptr, checksum_length);
+      co_await send_bytes(socket, span { checksum } .first(checksum_length));
 
-      co_await send_bytes(socket, buffer, size);
+      co_await send_bytes(socket, span { buffer } .first( size ));
 
       continuation ack { co_await receive_continuation(socket) };
       if (ack == continuation::OK)
         break;
-
     }
   }
 
@@ -113,17 +99,17 @@ namespace {
 namespace imaqliq::test::net_routines {
 
 awaitable<void> receive_file_contents (
-    tcp::socket& socket,
+    socket_t& socket,
     length_t file_size,
-    const std::filesystem::path& save_path) {
+    const fs::path& save_path) {
 
   std::ofstream os { save_path };
-  std::array<std::byte, chunk_size> buffer;
+  chunk_t buffer;
 
   const std::size_t full_chunk_count { file_size / chunk_size };
   const std::size_t last_chunk_size { (file_size - 1) % chunk_size + 1 };
 
-  for (auto chunk : v::iota (0ul, full_chunk_count))
+  for (std::size_t chunk : v::iota (0ul, full_chunk_count))
     co_await receive_chunk(socket, buffer, chunk_size, os);
 
   if (last_chunk_size != chunk_size) 
@@ -133,9 +119,9 @@ awaitable<void> receive_file_contents (
 }
 
 awaitable<void> send_file_contents (
-    tcp::socket& socket,
+    socket_t& socket,
     length_t file_size,
-    const std::filesystem::path& file_path) {
+    const fs::path& file_path) {
 
   std::ifstream is { file_path, std::ios::in | std::ios::binary };
   std::array<std::byte, chunk_size> buffer;
@@ -153,41 +139,34 @@ awaitable<void> send_file_contents (
 }
 
 
-awaitable<std::string> receive_string (tcp::socket& socket) {
+awaitable<std::string> receive_string (socket_t& socket) {
   
   length_t length { co_await receive_int<length_t>(socket) };
 
-  std::string result (length + 1, '\0');
-  co_await receive_bytes(socket, result, length);
+  std::string result;
+  result.resize(length);
 
+  co_await receive_bytes(socket, span { result.data() , length });
   co_return result;
 }
 
-awaitable<void> send_string (tcp::socket& socket, std::string_view string) {
+awaitable<void> send_string (socket_t& socket, std::string_view string) {
 
-  auto length { string.length() };
-  if (length > std::numeric_limits<length_t>::max())
+  auto length = string.length();
+  if (length > max_string_length)
     throw std::invalid_argument("String is too long to be sent.");
 
-  co_await send_int<length_t>(socket, string.length());
-  co_await send_bytes(socket, string, length);
+  co_await send_int<length_t>(socket, length);
+  co_await send_bytes(socket, span { string.data(), length });
 }
 
-awaitable<void> get_ack_or_throw (
-    tcp::socket& socket,
-    continuation expected_value) {
 
-  continuation ack { co_await receive_continuation(socket) };
-  if (ack != expected_value)
-    throw std::runtime_error("Unexpected answer from server");
-}
-
-awaitable<continuation> receive_continuation (tcp::socket& socket) {
+awaitable<continuation> receive_continuation (socket_t& socket) {
   co_return static_cast<continuation>(
       co_await receive_int<continuation_ut>(socket));
 }
   
-awaitable<void> send_continuation (tcp::socket& socket, continuation value) {
+awaitable<void> send_continuation (socket_t& socket, continuation value) {
   co_await send_int<continuation_ut>(
       socket,
       static_cast<continuation_ut>(value));

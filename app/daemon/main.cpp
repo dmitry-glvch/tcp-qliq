@@ -3,7 +3,7 @@
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "deamonize.hpp"
+#include "daemonize.hpp"
 #include "routines.hpp"
 
 
@@ -24,7 +24,7 @@ int main (int argc, char* argv[]) {
     const auto listen_port    { boost::lexical_cast<ip::port_type>(argv[2]) };
 
 
-    daemon::deamonize();
+    daemon::daemonize();
 
     boost::asio::io_context io_context { 1 };
 
