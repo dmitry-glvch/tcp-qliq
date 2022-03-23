@@ -1,13 +1,13 @@
 # !/bin/sh
 
-rm -r build conan
+# rm -r build conan
 
-mkdir conan
-cd conan
-conan install .. --build missing
-cd ..
+# mkdir conan
+# cd conan
+# conan install .. --build missing
+# cd ..
 
-mkdir build
+# mkdir build
 cd build
 cmake ..
 cmake --build .

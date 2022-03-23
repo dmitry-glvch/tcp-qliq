@@ -65,9 +65,9 @@ imaqliq::test::net_routines::receive_int (
     imaqliq::test::net_routines::socket_t& socket) {
 
   integral_t result;
-  co_await receive_bytes(
+  co_await receive_bytes (
     socket,
-    std::span<integral_t, 1> { std::addressof(result), 1 });
+    std::span<integral_t, 1> { std::addressof (result), 1 });
   co_return result;
 }
 
@@ -79,7 +79,7 @@ imaqliq::test::net_routines::send_int (
 
   co_await send_bytes (
       socket,
-      std::span<integral_t, 1> { std::addressof(value), 1 });
+      std::span<integral_t, 1> { std::addressof (value), 1 });
 }
 
 template <typename T, std::size_t extent>
@@ -88,14 +88,12 @@ imaqliq::test::net_routines::receive_bytes (
     boost::asio::ip::tcp::socket& socket,
     std::span<T, extent> bytes) {
 
-  const std::size_t byte_count { bytes.size_bytes() };
-  boost::asio::mutable_buffer buffer { bytes.data(), byte_count };
+  const std::size_t byte_count { bytes.size_bytes () };
+  boost::asio::mutable_buffer b { bytes.data (), byte_count };
 
   std::size_t received { 0 };
   while (received < byte_count)
-    received += co_await socket.async_receive(
-        buffer,
-        boost::asio::use_awaitable);
+    received += co_await socket.async_receive (b, boost::asio::use_awaitable);
 }
 
 template <typename T, std::size_t extent>
@@ -104,10 +102,10 @@ imaqliq::test::net_routines::send_bytes (
     boost::asio::ip::tcp::socket& socket,
     std::span<T, extent> bytes) {
 
-  const std::size_t byte_count { bytes.size_bytes() };
-  boost::asio::const_buffer buffer { bytes.data(), byte_count };
+  const std::size_t byte_count { bytes.size_bytes () };
+  boost::asio::const_buffer b { bytes.data (), byte_count };
 
   std::size_t sent { 0 };
   while (sent < byte_count)
-    sent += co_await socket.async_send(buffer, boost::asio::use_awaitable);
+    sent += co_await socket.async_send (b, boost::asio::use_awaitable);
 }

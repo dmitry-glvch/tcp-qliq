@@ -34,15 +34,16 @@ try {
 
 
   using tcp = boost::asio::ip::tcp;
-  boost::asio::io_context io_context { 1 };
-  auto endpoint { tcp::resolver{ io_context }.resolve(server, port) };
+
+  boost::asio::io_context io_context;
+  auto endpoint = tcp::resolver { io_context }.resolve (server, port);
 
   tcp::socket socket { io_context };
-  boost::asio::connect(socket, endpoint);
+  boost::asio::connect (socket, endpoint);
   
   boost::asio::co_spawn (
     io_context,
-    client_routine(std::move(socket), file_path),
+    client_routine (std::move (socket), file_path),
     boost::asio::detached
   );
 
@@ -50,13 +51,13 @@ try {
 
 } catch (const boost::system::system_error& e) {
 
-  const boost::system::error_code& code = e.code();
-  std::cerr << code.value() << ": " << code.message() << std::endl;
-  return code.value(); 
+  const boost::system::error_code& code = e.code ();
+  std::cerr << code.value () << ": " << code.message () << std::endl;
+  return code.value (); 
 
 } catch (const std::exception& e) {
 
-  std::cerr << e.what() << std::endl;
+  std::cerr << e.what () << std::endl;
   return EXIT_FAILURE;
 
 }
@@ -67,9 +68,9 @@ boost::asio::awaitable<void> get_ack_or_throw (
     imaqliq::test::net_routines::continuation expected_value) {
 
   imaqliq::test::net_routines::continuation ack
-     { co_await imaqliq::test::net_routines::receive_continuation(socket) };
+     { co_await imaqliq::test::net_routines::receive_continuation (socket) };
   if (ack != expected_value)
-    throw std::runtime_error("Unexpected answer from server");
+    throw std::runtime_error ("Unexpected answer from server");
 }
 
 boost::asio::awaitable<void>
@@ -80,26 +81,26 @@ try {
 
   namespace r = imaqliq::test::net_routines;
 
-  r::socket_t socket { std::forward<r::socket_t>(s) };
-  co_await get_ack_or_throw(socket);
+  r::socket_t socket { std::forward<r::socket_t> (s) };
+  co_await get_ack_or_throw (socket);
 
-  const auto file_size { std::filesystem::file_size(file_path) };
-  co_await r::send_int<r::length_t>(socket, file_size);
-  co_await get_ack_or_throw(socket);
+  const auto file_size { std::filesystem::file_size (file_path) };
+  co_await r::send_int<r::length_t> (socket, file_size);
+  co_await get_ack_or_throw (socket);
 
   const std::string file_name { file_path.filename ().string () };
-  co_await r::send_string(socket, file_name);
+  co_await r::send_string (socket, file_name);
 
-  co_await r::send_file_contents(socket, file_size, file_path);
-  co_await get_ack_or_throw(socket);
+  co_await r::send_file_contents (socket, file_size, file_path);
+  co_await get_ack_or_throw (socket);
   
 } catch (const boost::system::system_error& e) {
 
-  const boost::system::error_code& code = e.code();
-  std::cerr << code.value() << ": " << code.message() << std::endl;
+  const boost::system::error_code& code { e.code () };
+  std::cerr << code.value () << ": " << code.message () << std::endl;
 
 } catch (const std::exception& e) {
 
-  std::cerr << e.what() << std::endl;
+  std::cerr << e.what () << std::endl;
 
 }
